@@ -51,6 +51,15 @@ Open [http://127.0.0.1:38491](http://127.0.0.1:38491).
 
 ## Smoke tests
 
+With the server running:
+
+```bash
+./scripts/smoke.sh
+# or: ./scripts/smoke.sh http://127.0.0.1:38491
+```
+
+Manual one-liners:
+
 ```bash
 curl -sS http://127.0.0.1:38491/ | head
 curl -sS -c /tmp/cj -b /tmp/cj -X POST -d 'name=demo&value=42' http://127.0.0.1:38491/api/cookies -D -
