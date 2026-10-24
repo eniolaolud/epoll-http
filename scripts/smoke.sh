@@ -20,9 +20,19 @@ curl -sfS -b "$CJ" "$BASE/api/cookies" | grep -q demo
 echo "== upload / download / delete =="
 echo 'smoke-body' | curl -sfS -X POST --data-binary @- "$BASE/api/upload?name=smoke.txt" >/dev/null
 curl -sfS "$BASE/uploads/smoke.txt" | grep -q smoke-body
+# Downloads under /uploads/ should advertise Content-Disposition
+curl -sS -D - -o /dev/null "$BASE/uploads/smoke.txt" | grep -qi 'content-disposition: attachment'
 curl -sfS -X DELETE "$BASE/api/delete?name=smoke.txt" >/dev/null
 code="$(curl -sS -o /dev/null -w '%{http_code}' "$BASE/uploads/smoke.txt")"
 [[ "$code" == "404" ]]
+
+echo "== multipart upload =="
+mp="$(mktemp)"
+echo 'multipart-payload' >"$mp"
+curl -sfS -F "file=@${mp};filename=multi.txt" "$BASE/api/upload" >/dev/null
+curl -sfS "$BASE/uploads/multi.txt" | grep -q multipart-payload
+curl -sfS -X DELETE "$BASE/api/delete?name=multi.txt" >/dev/null
+rm -f "$mp"
 
 echo "== CGI =="
 curl -sfS "$BASE/cgi-bin/hello.sh" | grep -qi 'Hello from CGI'

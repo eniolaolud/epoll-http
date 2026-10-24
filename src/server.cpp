@@ -303,6 +303,14 @@ HttpResponse Server::serve_static(const HttpRequest& req) {
     HttpResponse r;
     r.set_file(*full);
     r.set_header("Accept-Ranges", "none");
+    // Treat /uploads/* as downloadable file transfers.
+    if (path.rfind("/uploads/", 0) == 0) {
+        std::string name = basename_of(path);
+        if (!name.empty()) {
+            r.set_header("Content-Disposition",
+                         "attachment; filename=\"" + name + "\"");
+        }
+    }
     return r;
 }
 
