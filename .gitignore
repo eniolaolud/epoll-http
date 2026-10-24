@@ -1,0 +1,11 @@
+/build/
+*.o
+*.a
+*.so
+.cmake/
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+www/uploads/*
+!www/uploads/.gitkeep
+*.log

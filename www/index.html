@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>epoll HTTP Server</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="hero">
+    <p class="brand">epoll-http</p>
+    <h1>Non-blocking C++ HTTP server</h1>
+    <p class="lede">GET, POST, DELETE, cookies, CGI, and file transfer over epoll.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>Static content</h2>
+      <p>This page and <a href="/style.css">style.css</a> are served from <code>www/</code> with path traversal protection.</p>
+      <p><a href="/about.html">About page</a> · <a href="/api/uploads">Uploads JSON API</a></p>
+    </section>
+
+    <section>
+      <h2>Cookies</h2>
+      <form method="POST" action="/api/cookies">
+        <label>Name <input name="name" value="visit" required></label>
+        <label>Value <input name="value" value="hello" required></label>
+        <button type="submit">Set cookie</button>
+      </form>
+      <p><a href="/api/cookies">View cookies sent by the browser</a></p>
+    </section>
+
+    <section>
+      <h2>File upload</h2>
+      <form method="POST" action="/api/upload" enctype="multipart/form-data">
+        <label>File <input type="file" name="file" required></label>
+        <button type="submit">Upload to www/uploads/</button>
+      </form>
+      <ul id="uploads"></ul>
+    </section>
+
+    <section>
+      <h2>Delete upload</h2>
+      <form id="delete-form">
+        <label>Filename <input name="name" id="delete-name" placeholder="example.txt" required></label>
+        <button type="submit">DELETE</button>
+      </form>
+      <pre id="delete-result"></pre>
+    </section>
+
+    <section>
+      <h2>CGI</h2>
+      <ul>
+        <li><a href="/cgi-bin/hello.sh">GET cgi-bin/hello.sh</a></li>
+        <li><a href="/cgi-bin/env.py?foo=bar&amp;x=1">GET cgi-bin/env.py (query)</a></li>
+        <li>
+          <form method="POST" action="/cgi-bin/echo.py">
+            <label>POST body <input name="message" value="ping from form"></label>
+            <button type="submit">POST to echo.py</button>
+          </form>
+        </li>
+      </ul>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
