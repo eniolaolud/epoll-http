@@ -159,6 +159,8 @@ void Server::handle_event(int fd, uint32_t events) {
             const HttpRequest& req = conn.request();
             bool head = req.method == Method::HEAD;
             HttpResponse resp = handle_request(req);
+            std::cout << method_to_string(req.method) << " " << req.target
+                      << " -> " << resp.status << std::endl;
             conn.queue_response(resp, !head);
             bool more = conn.on_writable();
             if (conn.state() == ConnState::Closed) {
@@ -174,6 +176,8 @@ void Server::handle_event(int fd, uint32_t events) {
                 // Next request already parsed
                 head = conn.request().method == Method::HEAD;
                 resp = handle_request(conn.request());
+                std::cout << method_to_string(conn.request().method) << " "
+                          << conn.request().target << " -> " << resp.status << std::endl;
                 conn.queue_response(resp, !head);
                 more = conn.on_writable();
             }
@@ -195,6 +199,8 @@ void Server::handle_event(int fd, uint32_t events) {
                    conn.state() != ConnState::Writing) {
                 bool head = conn.request().method == Method::HEAD;
                 HttpResponse resp = handle_request(conn.request());
+                std::cout << method_to_string(conn.request().method) << " "
+                          << conn.request().target << " -> " << resp.status << std::endl;
                 conn.queue_response(resp, !head);
                 more = conn.on_writable();
             }
@@ -600,7 +606,10 @@ HttpResponse Server::handle_cgi(const HttpRequest& req) {
 }
 
 HttpResponse Server::handle_request(const HttpRequest& req) {
-    std::cout << method_to_string(req.method) << " " << req.target << std::endl;
+    // HTTP/1.1 requires Host; HTTP/1.0 may omit it.
+    if (req.version == "HTTP/1.1" && !req.header("host")) {
+        return HttpResponse::bad_request("Missing Host header");
+    }
 
     if (req.method == Method::UNKNOWN) {
         return HttpResponse::bad_request("Unknown method");

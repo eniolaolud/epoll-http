@@ -8,6 +8,15 @@ trap 'rm -f "$CJ"' EXIT
 echo "== GET / =="
 curl -sfS -o /dev/null -w "%{http_code}\n" "$BASE/" | grep -q 200
 
+echo "== HTTP/1.1 requires Host =="
+# Raw request without Host should be 400
+code="$(printf 'GET / HTTP/1.1\r\nConnection: close\r\n\r\n' \
+  | nc -w 2 127.0.0.1 "${BASE##*:}" 2>/dev/null | head -1 | awk '{print $2}')"
+# nc may be unavailable; skip soft-fail if empty
+if [[ -n "${code:-}" ]]; then
+  [[ "$code" == "400" ]]
+fi
+
 echo "== HEAD / =="
 code="$(curl -sS -o /dev/null -w '%{http_code}' -I "$BASE/")"
 [[ "$code" == "200" ]]

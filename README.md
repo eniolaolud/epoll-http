@@ -55,6 +55,7 @@ Open [http://127.0.0.1:38491](http://127.0.0.1:38491).
 With the server running:
 
 ```bash
+make test          # ctest (safe_join) + smoke
 ./scripts/smoke.sh
 # or: ./scripts/smoke.sh http://127.0.0.1:38491
 ```
