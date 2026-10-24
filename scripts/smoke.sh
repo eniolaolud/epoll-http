@@ -9,13 +9,19 @@ echo "== GET / =="
 curl -sfS -o /dev/null -w "%{http_code}\n" "$BASE/" | grep -q 200
 
 echo "== HTTP/1.1 requires Host =="
-# Raw request without Host should be 400
-code="$(printf 'GET / HTTP/1.1\r\nConnection: close\r\n\r\n' \
-  | nc -w 2 127.0.0.1 "${BASE##*:}" 2>/dev/null | head -1 | awk '{print $2}')"
-# nc may be unavailable; skip soft-fail if empty
-if [[ -n "${code:-}" ]]; then
-  [[ "$code" == "400" ]]
-fi
+port="${BASE##*:}"
+host_code="$(python3 - "$port" <<'PY'
+import socket, sys
+port = int(sys.argv[1])
+s = socket.create_connection(("127.0.0.1", port), 2)
+s.sendall(b"GET / HTTP/1.1\r\nConnection: close\r\n\r\n")
+line = s.recv(128).decode("latin1", "replace").split("\r\n", 1)[0]
+parts = line.split()
+print(parts[1] if len(parts) >= 2 else "")
+s.close()
+PY
+)"
+[[ "$host_code" == "400" ]]
 
 echo "== HEAD / =="
 code="$(curl -sS -o /dev/null -w '%{http_code}' -I "$BASE/")"
