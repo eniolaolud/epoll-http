@@ -66,8 +66,13 @@ void HttpResponse::set_file(const std::string& path, const std::string& content_
 HttpResponse HttpResponse::not_found(const std::string& msg) {
     HttpResponse r;
     r.set_status(404, "Not Found");
-    r.set_html("<!doctype html><html><body><h1>404 Not Found</h1><p>" +
-               html_escape(msg) + "</p></body></html>");
+    r.set_html("<!doctype html><html lang=en><head><meta charset=utf-8>"
+               "<meta name=viewport content=\"width=device-width, initial-scale=1\">"
+               "<title>404</title><link rel=stylesheet href=/style.css></head><body>"
+               "<header class=hero><p class=brand>epoll-http</p>"
+               "<h1>404 Not Found</h1>"
+               "<p class=lede>" + html_escape(msg) + "</p></header>"
+               "<main><section><p><a href=/>Home</a></p></section></main></body></html>");
     return r;
 }
 
@@ -88,7 +93,7 @@ HttpResponse HttpResponse::forbidden(const std::string& msg) {
 HttpResponse HttpResponse::method_not_allowed() {
     HttpResponse r;
     r.set_status(405, "Method Not Allowed");
-    r.set_header("Allow", "GET, POST, DELETE, HEAD");
+    r.set_header("Allow", "GET, POST, DELETE, HEAD, OPTIONS");
     r.set_text("Method Not Allowed");
     return r;
 }

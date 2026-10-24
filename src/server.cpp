@@ -250,8 +250,13 @@ HttpResponse Server::list_uploads() {
 HttpResponse Server::handle_api_cookies(const HttpRequest& req) {
     if (req.method == Method::GET) {
         std::ostringstream oss;
-        oss << "<!doctype html><html><head><meta charset=utf-8><title>Cookies</title></head><body>";
-        oss << "<h1>Cookies</h1><ul>";
+        oss << "<!doctype html><html lang=en><head><meta charset=utf-8>"
+            << "<meta name=viewport content=\"width=device-width, initial-scale=1\">"
+            << "<title>Cookies</title><link rel=stylesheet href=/style.css></head><body>"
+            << "<header class=hero><p class=brand>epoll-http</p>"
+            << "<h1>Cookies</h1>"
+            << "<p class=lede>Values from the browser Cookie header, parsed into a map.</p>"
+            << "</header><main><section><ul>";
         if (req.cookies.empty()) {
             oss << "<li><em>No cookies sent</em></li>";
         } else {
@@ -260,7 +265,7 @@ HttpResponse Server::handle_api_cookies(const HttpRequest& req) {
                     << html_escape(kv.second) << "</li>";
             }
         }
-        oss << "</ul><p><a href=\"/\">Home</a></p></body></html>";
+        oss << "</ul><p><a href=/>Home</a></p></section></main></body></html>";
         HttpResponse r;
         r.set_html(oss.str());
         return r;

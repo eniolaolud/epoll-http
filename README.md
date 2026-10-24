@@ -17,8 +17,8 @@ Default listen address: **0.0.0.0:38491**.
 ## Build
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j
+make build
+# or: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 ```
 
 Binary: `build/http_server`.
@@ -28,7 +28,8 @@ Binary: `build/http_server`.
 From the repository root (so relative `www` and `cgi-bin` resolve):
 
 ```bash
-./build/http_server --port 38491 --www www --cgi cgi-bin
+make run
+# or: ./build/http_server --port 38491 --www www --cgi cgi-bin
 ```
 
 Options: `--host`, `--port`, `--www`, `--cgi`.
@@ -69,6 +70,13 @@ curl -sS -X DELETE 'http://127.0.0.1:38491/api/delete?name=hello.txt'
 curl -sS 'http://127.0.0.1:38491/cgi-bin/hello.sh'
 curl -sS -X POST -d 'message=hi' http://127.0.0.1:38491/cgi-bin/echo.py
 ```
+
+## How it fits together
+
+1. **`Server::run`** — `epoll_wait` loop; accept clients edge-triggered (`EPOLLIN|EPOLLOUT|EPOLLET`).
+2. **`Connection`** — state machine for partial reads/writes, keep-alive, and pipelining.
+3. **`finalize_request`** — cookies, urlencoded forms, multipart uploads.
+4. **`handle_request`** — routes API, CGI, then static files via **`safe_join`** (realpath + root prefix check).
 
 ## Caveats
 
