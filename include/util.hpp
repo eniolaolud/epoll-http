@@ -29,4 +29,7 @@ std::string dirname_of(const std::string& path);
 
 std::vector<std::string> list_directory(const std::string& path);
 
+// RFC 7231 IMF-fix Date header value (UTC).
+std::string http_date_now();
+
 }  // namespace http

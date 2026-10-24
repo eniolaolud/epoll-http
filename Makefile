@@ -1,4 +1,4 @@
-.PHONY: all build run smoke clean
+.PHONY: all build run smoke test clean
 
 BUILD_DIR ?= build
 PORT ?= 38491
@@ -13,6 +13,10 @@ run: build
 	./$(BUILD_DIR)/http_server --host 0.0.0.0 --port $(PORT) --www www --cgi cgi-bin
 
 smoke:
+	./scripts/smoke.sh http://127.0.0.1:$(PORT)
+
+test: build
+	ctest --test-dir $(BUILD_DIR) --output-on-failure
 	./scripts/smoke.sh http://127.0.0.1:$(PORT)
 
 clean:

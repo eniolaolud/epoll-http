@@ -121,16 +121,23 @@ std::string HttpResponse::serialize(bool include_body) const {
     bool has_len = false;
     bool has_conn = false;
     bool has_server = false;
+    bool has_date = false;
     for (const auto& kv : headers) {
-        if (to_lower(kv.first) == "content-length") has_len = true;
-        if (to_lower(kv.first) == "connection") has_conn = true;
-        if (to_lower(kv.first) == "server") has_server = true;
+        auto ln = to_lower(kv.first);
+        if (ln == "content-length") has_len = true;
+        if (ln == "connection") has_conn = true;
+        if (ln == "server") has_server = true;
+        if (ln == "date") has_date = true;
         oss << kv.first << ": " << kv.second << "\r\n";
     }
     for (const auto& c : set_cookies) {
         oss << "Set-Cookie: " << c << "\r\n";
     }
     if (!has_server) oss << "Server: epoll-http/1.0\r\n";
+    if (!has_date) {
+        auto d = http_date_now();
+        if (!d.empty()) oss << "Date: " << d << "\r\n";
+    }
     if (!has_conn) oss << "Connection: keep-alive\r\n";
     if (!has_len) {
         std::size_t len = include_body ? body.size() : 0;

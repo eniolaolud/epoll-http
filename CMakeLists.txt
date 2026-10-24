@@ -23,3 +23,14 @@ target_include_directories(http_server PRIVATE include)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(http_server PRIVATE -Wall -Wextra -Wpedantic)
 endif()
+
+enable_testing()
+add_executable(safe_join_test
+    tests/safe_join_test.cpp
+    src/util.cpp
+)
+target_include_directories(safe_join_test PRIVATE include)
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(safe_join_test PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+add_test(NAME safe_join_test COMMAND safe_join_test)

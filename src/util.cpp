@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <climits>
 #include <cstdlib>
+#include <ctime>
 
 namespace http {
 
@@ -192,6 +193,18 @@ std::vector<std::string> list_directory(const std::string& path) {
     closedir(d);
     std::sort(names.begin(), names.end());
     return names;
+}
+
+std::string http_date_now() {
+    std::time_t t = std::time(nullptr);
+    std::tm tm {};
+    gmtime_r(&t, &tm);
+    char buf[64];
+    // e.g. Sun, 06 Nov 1994 08:49:37 GMT
+    if (std::strftime(buf, sizeof(buf), "%a, %d %b %Y %H:%M:%S GMT", &tm) == 0) {
+        return {};
+    }
+    return buf;
 }
 
 }  // namespace http
