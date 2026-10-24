@@ -73,4 +73,28 @@ for i in $(seq 1 40); do
 done
 echo "ok $ok/40"
 
+echo "== keep-alive pipeline =="
+port="${BASE##*:}"
+python3 - "$port" <<'PY'
+import socket, sys
+port = int(sys.argv[1])
+req = (
+    b"GET /about.html HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: keep-alive\r\n\r\n"
+    b"GET /cgi-bin/hello.sh HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"
+)
+s = socket.create_connection(("127.0.0.1", port), 3)
+s.sendall(req)
+data = b""
+while True:
+    chunk = s.recv(8192)
+    if not chunk:
+        break
+    data += chunk
+text = data.decode("latin1", "replace")
+assert text.count("HTTP/1.1 200") >= 2, text[:200]
+assert "Hello from CGI" in text
+print("ok")
+s.close()
+PY
+
 echo "ALL_SMOKE_OK ($BASE)"
