@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include <cstdint>
+#include <chrono>
 
 namespace http {
 
@@ -31,6 +32,11 @@ public:
     bool want_write() const;
     bool keep_alive() const { return keep_alive_; }
 
+    using Clock = std::chrono::steady_clock;
+    Clock::time_point last_activity() const { return last_activity_; }
+    void touch();
+    bool idle_timed_out(Clock::time_point now, int idle_seconds) const;
+
     // Returns true if a complete request is ready to handle.
     bool on_readable();
     // Queue a response for writing.
@@ -49,6 +55,7 @@ private:
     std::size_t header_end_ = 0;
     std::size_t expected_body_ = 0;
     bool keep_alive_ = true;
+    Clock::time_point last_activity_;
 
     bool try_parse_headers();
     bool body_complete() const;

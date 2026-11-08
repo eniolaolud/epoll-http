@@ -2,15 +2,29 @@
 
 #include <cerrno>
 #include <cstring>
+#include <chrono>
 #include <unistd.h>
 #include <sys/socket.h>
 
 namespace http {
 
-Connection::Connection(int fd) : fd_(fd) {}
+Connection::Connection(int fd) : fd_(fd), last_activity_(Clock::now()) {}
 
 Connection::~Connection() {
     close();
+}
+
+void Connection::touch() {
+    last_activity_ = Clock::now();
+}
+
+bool Connection::idle_timed_out(Clock::time_point now, int idle_seconds) const {
+    if (idle_seconds <= 0) return false;
+    // Only reap keep-alive sockets waiting for the next request.
+    if (state_ != ConnState::ReadingHeaders) return false;
+    if (!read_buf_.empty()) return false;  // partial headers in flight
+    auto idle = std::chrono::duration_cast<std::chrono::seconds>(now - last_activity_);
+    return idle.count() >= idle_seconds;
 }
 
 bool Connection::want_read() const {
@@ -63,9 +77,11 @@ bool Connection::try_parse_headers() {
 
 bool Connection::on_readable() {
     char tmp[8192];
+    bool got = false;
     while (true) {
         ssize_t n = ::recv(fd_, tmp, sizeof(tmp), 0);
         if (n > 0) {
+            got = true;
             read_buf_.append(tmp, static_cast<std::size_t>(n));
             continue;
         }
@@ -78,6 +94,7 @@ bool Connection::on_readable() {
         state_ = ConnState::Closed;
         return false;
     }
+    if (got) touch();
 
     if (state_ == ConnState::ReadingHeaders) {
         if (try_parse_headers()) return true;
@@ -113,21 +130,28 @@ void Connection::queue_response(const HttpResponse& resp, bool include_body) {
     write_buf_ = r.serialize(include_body);
     write_offset_ = 0;
     state_ = ConnState::Writing;
+    touch();
 }
 
 bool Connection::on_writable() {
+    bool wrote = false;
     while (write_offset_ < write_buf_.size()) {
         ssize_t n = ::send(fd_, write_buf_.data() + write_offset_,
                            write_buf_.size() - write_offset_, MSG_NOSIGNAL);
         if (n > 0) {
+            wrote = true;
             write_offset_ += static_cast<std::size_t>(n);
             continue;
         }
-        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return false;
+        if (n < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) {
+            if (wrote) touch();
+            return false;
+        }
         if (n < 0 && errno == EINTR) continue;
         state_ = ConnState::Closed;
         return true;
     }
+    if (wrote) touch();
 
     // Fully written
     if (!keep_alive_) {
@@ -148,6 +172,7 @@ bool Connection::on_writable() {
     expected_body_ = 0;
     request_ = HttpRequest{};
     state_ = ConnState::ReadingHeaders;
+    touch();
 
     // Piped request already in buffer?
     if (!read_buf_.empty() && try_parse_headers()) {

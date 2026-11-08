@@ -5,12 +5,15 @@ A small **non-blocking HTTP/1.1 server** in C++17 for Linux. It uses `epoll` (ed
 ## Features
 
 - **Methods:** GET, HEAD, POST, DELETE, OPTIONS
-- **Static files** from `www/` (MIME types, path traversal checks)
+- **Non-blocking I/O:** edge-triggered epoll, partial read/write state machine, keep-alive + pipelining
+- **Idle timeout:** closes quiet keep-alive sockets (default 60s; `--idle-timeout 0` disables)
+- **Static files** from `www/` (MIME types, `safe_join` path traversal checks)
 - **Cookies:** parse `Cookie`, send `Set-Cookie` via `/api/cookies`
 - **Uploads:** multipart or raw POST to `/api/upload` → `www/uploads/`
-- **Downloads:** GET `/uploads/<file>`
+- **Downloads:** GET `/uploads/<file>` with `Content-Disposition: attachment`
 - **DELETE:** `/api/delete?name=...` or `DELETE /uploads/<file>`
 - **CGI:** fork/exec scripts under `cgi-bin/` with standard CGI environment variables
+- **HTTP hygiene:** requires `Host` on HTTP/1.1, sends `Date` / `Server` headers
 
 Default listen address: **0.0.0.0:38491**.
 
@@ -29,10 +32,10 @@ From the repository root (so relative `www` and `cgi-bin` resolve):
 
 ```bash
 make run
-# or: ./build/http_server --port 38491 --www www --cgi cgi-bin
+# or: ./build/http_server --port 38491 --www www --cgi cgi-bin --idle-timeout 60
 ```
 
-Options: `--host`, `--port`, `--www`, `--cgi`.
+Options: `--host`, `--port`, `--www`, `--cgi`, `--idle-timeout`.
 
 Open [http://127.0.0.1:38491](http://127.0.0.1:38491).
 
@@ -50,7 +53,7 @@ Open [http://127.0.0.1:38491](http://127.0.0.1:38491).
 | `/cgi-bin/env.py` | Python CGI (env + query) |
 | `/cgi-bin/echo.py` | Python CGI POST echo |
 
-## Smoke tests
+## Tests
 
 With the server running:
 
@@ -60,24 +63,25 @@ make test          # ctest (safe_join) + smoke
 # or: ./scripts/smoke.sh http://127.0.0.1:38491
 ```
 
-Manual one-liners:
-
-```bash
-curl -sS http://127.0.0.1:38491/ | head
-curl -sS -c /tmp/cj -b /tmp/cj -X POST -d 'name=demo&value=42' http://127.0.0.1:38491/api/cookies -D -
-echo hello | curl -sS -X POST --data-binary @- 'http://127.0.0.1:38491/api/upload?name=hello.txt'
-curl -sS http://127.0.0.1:38491/uploads/hello.txt
-curl -sS -X DELETE 'http://127.0.0.1:38491/api/delete?name=hello.txt'
-curl -sS 'http://127.0.0.1:38491/cgi-bin/hello.sh'
-curl -sS -X POST -d 'message=hi' http://127.0.0.1:38491/cgi-bin/echo.py
-```
+Smoke covers GET/HEAD/POST/DELETE, cookies, multipart upload, CGI, path traversal, concurrent GETs, keep-alive pipelining, and HTTP/1.1 Host enforcement.
 
 ## How it fits together
 
-1. **`Server::run`** — `epoll_wait` loop; accept clients edge-triggered (`EPOLLIN|EPOLLOUT|EPOLLET`).
+1. **`Server::run`** — `epoll_wait` loop; accept clients edge-triggered (`EPOLLIN|EPOLLOUT|EPOLLET`); reap idle keep-alive connections.
 2. **`Connection`** — state machine for partial reads/writes, keep-alive, and pipelining.
 3. **`finalize_request`** — cookies, urlencoded forms, multipart uploads.
 4. **`handle_request`** — routes API, CGI, then static files via **`safe_join`** (realpath + root prefix check).
+
+## Project layout
+
+```
+include/          public headers
+src/              server, connection, HTTP parse/serialize, main
+www/              static demo site + uploads/
+cgi-bin/          sample CGI scripts
+tests/            safe_join unit test
+scripts/smoke.sh  end-to-end smoke suite
+```
 
 ## Caveats
 

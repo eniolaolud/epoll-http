@@ -25,11 +25,13 @@ constexpr int kListenBacklog = 128;
 }
 
 Server::Server(std::string host, uint16_t port,
-               std::string doc_root, std::string cgi_root)
+               std::string doc_root, std::string cgi_root,
+               int idle_timeout_secs)
     : host_(std::move(host)),
       port_(port),
       doc_root_(std::move(doc_root)),
-      cgi_root_(std::move(cgi_root)) {}
+      cgi_root_(std::move(cgi_root)),
+      idle_timeout_secs_(idle_timeout_secs) {}
 
 Server::~Server() {
     stop();
@@ -138,6 +140,21 @@ void Server::remove_connection(int fd) {
     conns_.erase(it);
 }
 
+void Server::reap_idle_connections() {
+    if (idle_timeout_secs_ <= 0) return;
+    auto now = Connection::Clock::now();
+    std::vector<int> doomed;
+    doomed.reserve(conns_.size());
+    for (const auto& kv : conns_) {
+        if (kv.second && kv.second->idle_timed_out(now, idle_timeout_secs_)) {
+            doomed.push_back(kv.first);
+        }
+    }
+    for (int fd : doomed) {
+        remove_connection(fd);
+    }
+}
+
 void Server::handle_event(int fd, uint32_t events) {
     auto it = conns_.find(fd);
     if (it == conns_.end()) return;
@@ -217,7 +234,8 @@ void Server::run() {
     std::vector<epoll_event> events(kMaxEvents);
     std::cout << "Listening on http://" << (host_.empty() ? "0.0.0.0" : host_)
               << ":" << port_ << "  doc_root=" << doc_root_
-              << "  cgi_root=" << cgi_root_ << std::endl;
+              << "  cgi_root=" << cgi_root_
+              << "  idle_timeout=" << idle_timeout_secs_ << "s" << std::endl;
 
     while (running_) {
         int n = epoll_wait(epoll_fd_, events.data(), kMaxEvents, 500);
@@ -234,6 +252,7 @@ void Server::run() {
                 handle_event(fd, events[i].events);
             }
         }
+        reap_idle_connections();
     }
 }
 

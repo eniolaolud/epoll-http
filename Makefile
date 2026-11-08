@@ -10,7 +10,7 @@ build:
 	cmake --build $(BUILD_DIR) -j
 
 run: build
-	./$(BUILD_DIR)/http_server --host 0.0.0.0 --port $(PORT) --www www --cgi cgi-bin
+	./$(BUILD_DIR)/http_server --host 0.0.0.0 --port $(PORT) --www www --cgi cgi-bin --idle-timeout 60
 
 smoke:
 	./scripts/smoke.sh http://127.0.0.1:$(PORT)

@@ -15,7 +15,8 @@ namespace http {
 class Server {
 public:
     Server(std::string host, uint16_t port,
-           std::string doc_root, std::string cgi_root);
+           std::string doc_root, std::string cgi_root,
+           int idle_timeout_secs = 60);
     ~Server();
 
     Server(const Server&) = delete;
@@ -32,6 +33,7 @@ private:
     uint16_t port_;
     std::string doc_root_;
     std::string cgi_root_;
+    int idle_timeout_secs_ = 60;
     int listen_fd_ = -1;
     int epoll_fd_ = -1;
     std::unordered_map<int, ConnectionPtr> conns_;
@@ -41,6 +43,7 @@ private:
     void accept_new();
     void handle_event(int fd, uint32_t events);
     void remove_connection(int fd);
+    void reap_idle_connections();
 
     HttpResponse serve_static(const HttpRequest& req);
     HttpResponse handle_upload(const HttpRequest& req);

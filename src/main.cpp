@@ -16,8 +16,10 @@ void on_signal(int) {
 
 static void usage(const char* argv0) {
     std::cerr << "Usage: " << argv0
-              << " [--host HOST] [--port PORT] [--www DIR] [--cgi DIR]\n"
-              << "  Defaults: host=0.0.0.0 port=38491 www=www cgi=cgi-bin\n";
+              << " [--host HOST] [--port PORT] [--www DIR] [--cgi DIR]"
+              << " [--idle-timeout SECS]\n"
+              << "  Defaults: host=0.0.0.0 port=38491 www=www cgi=cgi-bin"
+              << " idle-timeout=60 (0 disables)\n";
 }
 
 int main(int argc, char** argv) {
@@ -25,6 +27,7 @@ int main(int argc, char** argv) {
     uint16_t port = 38491;
     std::string www = "www";
     std::string cgi = "cgi-bin";
+    int idle_timeout = 60;
 
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
@@ -39,6 +42,7 @@ int main(int argc, char** argv) {
         else if (a == "--port") port = static_cast<uint16_t>(std::stoi(need("--port")));
         else if (a == "--www") www = need("--www");
         else if (a == "--cgi") cgi = need("--cgi");
+        else if (a == "--idle-timeout") idle_timeout = std::stoi(need("--idle-timeout"));
         else if (a == "-h" || a == "--help") {
             usage(argv[0]);
             return 0;
@@ -49,7 +53,7 @@ int main(int argc, char** argv) {
         }
     }
 
-    http::Server server(host, port, www, cgi);
+    http::Server server(host, port, www, cgi, idle_timeout);
     g_server = &server;
 
     std::signal(SIGINT, on_signal);
